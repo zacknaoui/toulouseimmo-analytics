@@ -2,31 +2,31 @@
   {
     "modele": "Régression linéaire",
     "temps_entrainement_s": 0.001,
-    "rmse_train": 3483.2,
-    "rmse_test": 4025.6,
-    "mae_train": 1728.8,
-    "mae_test": 1873.7,
-    "r2_train": 0.0734,
-    "r2_test": 0.0816
+    "rmse_train": 3852.1,
+    "rmse_test": 3964.5,
+    "mae_train": 1878.3,
+    "mae_test": 1898.1,
+    "r2_train": 0.0932,
+    "r2_test": 0.096
   },
   {
     "modele": "Random Forest",
-    "temps_entrainement_s": 0.533,
-    "rmse_train": 2261.0,
-    "rmse_test": 3552.9,
-    "mae_train": 1166.8,
-    "mae_test": 1769.7,
-    "r2_train": 0.6096,
-    "r2_test": 0.2846
+    "temps_entrainement_s": 0.774,
+    "rmse_train": 2412.4,
+    "rmse_test": 3334.5,
+    "mae_train": 1230.2,
+    "mae_test": 1649.0,
+    "r2_train": 0.6444,
+    "r2_test": 0.3605
   },
   {
     "modele": "XGBoost",
-    "temps_entrainement_s": 0.437,
-    "rmse_train": 1909.8,
-    "rmse_test": 3441.3,
-    "mae_train": 1113.3,
-    "mae_test": 1710.1,
-    "r2_train": 0.7214,
-    "r2_test": 0.3289
+    "temps_entrainement_s": 0.443,
+    "rmse_train": 2638.1,
+    "rmse_test": 3387.1,
+    "mae_train": 1385.8,
+    "mae_test": 1657.6,
+    "r2_train": 0.5747,
+    "r2_test": 0.3402
   }
 ]

@@ -27,7 +27,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
+from sklearn.neighbors import BallTree
 
 BASE = Path(__file__).resolve().parent.parent
 DATA = BASE / "data"
@@ -36,6 +38,9 @@ REPORTS = BASE / "reports"
 
 SEUIL_NOUVELLES_TRANSACTIONS = 500   # déclenche un réentraînement si atteint
 SEUIL_ALERTE_MONITORING = True       # déclenche aussi si le script 06 a levé une alerte
+
+ARRETS_CSV = DATA / "arrets_tisseo.csv"
+REF_TRANSPORT_CSV = DATA / "reference_transport_quartier.csv"
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS predictions_log (
@@ -119,6 +124,54 @@ def derniere_alerte_monitoring() -> bool:
     return bool(derniere.get("alerte_performance") or derniere.get("alerte_drift"))
 
 
+def _charger_arrets_transport():
+    """Charge les arrêts Tisséo et construit un BallTree (distance
+    haversine), exactement comme api/main.py (_load_arrets_transport) — pour
+    calculer, à partir d'une coordonnée GPS réelle, la distance au transport
+    le plus proche dans les mêmes conditions qu'en production."""
+    if not ARRETS_CSV.exists():
+        return None, None
+    df = pd.read_csv(ARRETS_CSV, sep=";", encoding="utf-8-sig")
+    coords = df["Geo Point"].str.split(",", expand=True).astype(float)
+    df["lat"], df["lon"] = coords[0], coords[1]
+    df["est_metro"] = df["CONC_MODE"].fillna("").str.contains("metro", case=False, na=False)
+    df = df.dropna(subset=["lat", "lon"])
+    arbre = BallTree(np.radians(df[["lat", "lon"]].to_numpy()), metric="haversine")
+    return df, arbre
+
+
+def _distance_transport_coords(lat: float, lon: float, arrets_df: pd.DataFrame, arbre: BallTree):
+    d_rad, idx = arbre.query(np.radians([[lat, lon]]), k=1)
+    distance_m = round(float(d_rad[0][0] * 6_371_000), 1)
+    est_metro = bool(arrets_df.iloc[idx[0][0]]["est_metro"])
+    return distance_m, int(est_metro)
+
+
+def _charger_reference_transport():
+    if not REF_TRANSPORT_CSV.exists():
+        return None
+    return pd.read_csv(REF_TRANSPORT_CSV)
+
+
+def _tirer_transport_empirique(quartier: str, ref: pd.DataFrame, rng: np.random.Generator):
+    """Repli utilisé quand une transaction n'a pas de coordonnées GPS (ex :
+    donnée de démonstration insérée via --simuler-flux) : tire un couple
+    (distance, est_metro) réaliste dans la distribution empirique de ce
+    quartier — même méthode que 00_generate_calibrated_dataset.py.
+    NB : reference_transport_quartier.csv utilise par endroits un découpage
+    de quartiers légèrement différent de dim_quartier (ex. "Borderouge /
+    Bagatelle" vs "Bagatelle / Reynerie" / "Borderouge / Croix-Daurade") —
+    une incohérence de nommage préexistante dans les données du projet, pas
+    introduite ici. Dans ce cas on retombe sur l'ensemble complet plutôt que
+    de planter, ce qui reste statistiquement raisonnable (les distances au
+    transport sont du même ordre de grandeur d'un quartier à l'autre)."""
+    sous_ensemble = ref[ref["quartier"] == quartier]
+    if sous_ensemble.empty:
+        sous_ensemble = ref
+    tirage = sous_ensemble.sample(1, random_state=int(rng.integers(0, 2**31 - 1))).iloc[0]
+    return round(float(tirage["distance_transport_m"]), 1), int(tirage["est_metro_proche"])
+
+
 def integrer_nouvelles_transactions() -> int:
     """Fusionne les transactions en attente (table nouvelles_transactions de
     monitoring.db) dans la base transactionnelle de référence (toulouse_immo.db,
@@ -137,6 +190,14 @@ def integrer_nouvelles_transactions() -> int:
     dim = pd.read_sql_query("SELECT * FROM dim_quartier", conn_tx)
     max_id = conn_tx.execute("SELECT COALESCE(MAX(id_mutation), 0) FROM transactions").fetchone()[0]
 
+    # distance_transport_m / est_metro_proche : calculées ici, sinon la
+    # colonne reste NULL et fait planter la corrélation/RFE de
+    # 02_feature_selection.py (ValueError: Input X contains NaN) — bug
+    # repéré lors d'un test réel avec de vraies données DVF 2025.
+    arrets_df, arbre = _charger_arrets_transport()
+    ref_transport = _charger_reference_transport()
+    rng = np.random.default_rng()
+
     inserees = 0
     for i, row in en_attente.iterrows():
         p = json.loads(row["payload_json"])
@@ -147,16 +208,32 @@ def integrer_nouvelles_transactions() -> int:
         date_mut = p.get("date_mutation", datetime.now().strftime("%Y-%m-%d"))
         annee, mois = int(date_mut[:4]), int(date_mut[5:7])
         max_id += 1
+
+        if "lat" in p and "lon" in p and arbre is not None:
+            # coordonnées réelles disponibles (données DVF géolocalisées) :
+            # même calcul que l'API en production (api/main.py).
+            distance_transport_m, est_metro_proche = _distance_transport_coords(
+                p["lat"], p["lon"], arrets_df, arbre)
+        elif ref_transport is not None:
+            # pas de coordonnées (ex : donnée simulée --simuler-flux) :
+            # repli sur un tirage empirique par quartier.
+            distance_transport_m, est_metro_proche = _tirer_transport_empirique(
+                p["quartier"], ref_transport, rng)
+        else:
+            distance_transport_m, est_metro_proche = None, None
+
         conn_tx.execute(
             "INSERT INTO transactions (id_mutation, date_mutation, annee, mois_mutation, trimestre, "
             "code_postal, quartier, type_bien, type_vente, surface_m2, nb_pieces, prix_vente, prix_m2, "
-            "revenu_median_mensuel, taux_pauvrete_pct, population_2019, part_jeunes_pct, part_seniors_pct) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            "revenu_median_mensuel, taux_pauvrete_pct, population_2019, part_jeunes_pct, part_seniors_pct, "
+            "distance_transport_m, est_metro_proche) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (max_id, date_mut, annee, mois, f"{annee}Q{(mois-1)//3+1}", str(ctx.code_postal), p["quartier"],
              p["type_bien"], "Vente", float(p["surface_m2"]), int(p.get("nb_pieces", 2)),
              float(p["prix_m2"]) * float(p["surface_m2"]), float(p["prix_m2"]),
              float(ctx.revenu_median_mensuel), float(ctx.taux_pauvrete_pct), int(ctx.population_2019),
-             float(ctx.part_jeunes_pct), float(ctx.part_seniors_pct)),
+             float(ctx.part_jeunes_pct), float(ctx.part_seniors_pct),
+             distance_transport_m, est_metro_proche),
         )
         inserees += 1
     conn_tx.commit()

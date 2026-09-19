@@ -2,73 +2,73 @@
   "correlations": [
     {
       "variable": "part_jeunes_pct",
-      "correlation": 0.164,
-      "p_value": 8.793733275224786e-29
+      "correlation": 0.181,
+      "p_value": 4.895569310110512e-87
     },
     {
       "variable": "nb_pieces",
-      "correlation": -0.135,
-      "p_value": 7.876978788772272e-20
+      "correlation": -0.158,
+      "p_value": 1.288144070048574e-66
     },
     {
       "variable": "surface_m2",
-      "correlation": -0.107,
-      "p_value": 5.416025122385412e-13
+      "correlation": -0.118,
+      "p_value": 2.1243816468623868e-37
     },
     {
       "variable": "revenu_median_mensuel",
       "correlation": 0.093,
-      "p_value": 3.7976493397554426e-10
+      "p_value": 3.208161500002865e-24
     },
     {
       "variable": "mois_mutation",
-      "correlation": 0.037,
-      "p_value": 0.012115314612072232
+      "correlation": 0.052,
+      "p_value": 1.3410871837684664e-08
     },
     {
       "variable": "part_seniors_pct",
-      "correlation": -0.03,
-      "p_value": 0.04383373695960272
-    },
-    {
-      "variable": "est_metro_proche",
-      "correlation": 0.029,
-      "p_value": 0.05155299682536683
-    },
-    {
-      "variable": "taux_pauvrete_pct",
-      "correlation": -0.028,
-      "p_value": 0.05766870960125812
+      "correlation": -0.045,
+      "p_value": 9.309076794289021e-07
     },
     {
       "variable": "population_2019",
-      "correlation": -0.012,
-      "p_value": 0.42093522200842637
+      "correlation": -0.027,
+      "p_value": 0.0032052319117041616
     },
     {
       "variable": "distance_transport_m",
-      "correlation": -0.007,
-      "p_value": 0.651421965636491
+      "correlation": -0.024,
+      "p_value": 0.009183495818386492
+    },
+    {
+      "variable": "taux_pauvrete_pct",
+      "correlation": -0.015,
+      "p_value": 0.09355471920060032
+    },
+    {
+      "variable": "est_metro_proche",
+      "correlation": 0.002,
+      "p_value": 0.8662493471087693
     }
   ],
   "importances_rf": {
-    "distance_transport_m": 0.4325,
-    "surface_m2": 0.2208,
-    "mois_mutation": 0.1193,
-    "nb_pieces": 0.0498,
-    "revenu_median_mensuel": 0.0301,
-    "is_maison": 0.0227,
-    "part_jeunes_pct": 0.02,
-    "est_metro_proche": 0.0198,
-    "population_2019": 0.016,
-    "q_Borderouge / Croix-Daurade": 0.0144,
-    "part_seniors_pct": 0.0133,
-    "taux_pauvrete_pct": 0.0124,
-    "q_Capitole / Carmes": 0.0101,
-    "q_Bagatelle / Reynerie": 0.007,
-    "q_Côte Pavée / Jolimont": 0.0053,
-    "q_Saint-Cyprien / Arènes": 0.0036,
-    "q_Rangueil / Saouzelong": 0.003
+    "distance_transport_m": 0.4438,
+    "surface_m2": 0.2413,
+    "mois_mutation": 0.1276,
+    "nb_pieces": 0.045,
+    "revenu_median_mensuel": 0.0423,
+    "is_maison": 0.0177,
+    "part_jeunes_pct": 0.0172,
+    "taux_pauvrete_pct": 0.0116,
+    "population_2019": 0.0113,
+    "part_seniors_pct": 0.0107,
+    "q_Capitole / Carmes": 0.0105,
+    "est_metro_proche": 0.0075,
+    "q_Côte Pavée / Jolimont": 0.0054,
+    "q_Saint-Cyprien / Arènes": 0.0024,
+    "q_Rangueil / Saouzelong": 0.0019,
+    "q_Bagatelle / Reynerie": 0.0019,
+    "q_Borderouge / Croix-Daurade": 0.0018
   },
   "rfe_retenues": [
     "q_Saint-Cyprien / Arènes",
@@ -77,8 +77,8 @@
     "q_Côte Pavée / Jolimont",
     "q_Capitole / Carmes",
     "q_Borderouge / Croix-Daurade",
-    "q_Bagatelle / Reynerie",
-    "est_metro_proche"
+    "q_Rangueil / Saouzelong",
+    "q_Bagatelle / Reynerie"
   ],
   "selection_finale": [
     "distance_transport_m",
@@ -86,6 +86,7 @@
     "nb_pieces",
     "part_jeunes_pct",
     "part_seniors_pct",
+    "population_2019",
     "q_Bagatelle / Reynerie",
     "q_Borderouge / Croix-Daurade",
     "q_Capitole / Carmes",

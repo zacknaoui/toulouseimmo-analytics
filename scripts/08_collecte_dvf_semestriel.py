@@ -105,6 +105,7 @@ def telecharger_dvf(annee: int) -> pd.DataFrame:
     colonnes = [
         "id_mutation", "date_mutation", "valeur_fonciere", "code_postal",
         "type_local", "surface_reelle_bati", "nombre_pieces_principales",
+        "longitude", "latitude",
     ]
     return pd.read_csv(url, usecols=lambda c: c in colonnes, dtype={"code_postal": str})
 
@@ -141,14 +142,25 @@ def filtrer_et_convertir(df: pd.DataFrame, depuis_le: str) -> list[dict]:
 
     payloads = []
     for _, row in df.iterrows():
-        payloads.append({
+        payload = {
             "quartier": QUARTIERS_CP[row["code_postal"]],
             "type_bien": row["type_local"],
             "surface_m2": float(row["surface_reelle_bati"]),
             "nb_pieces": int(row["nombre_pieces_principales"]) if pd.notna(row.get("nombre_pieces_principales")) else 2,
             "prix_m2": float(row["prix_m2_calc"]),
             "date_mutation": str(row["date_mutation"])[:10],
-        })
+        }
+        # lat/lon réelles de la mutation, si présentes dans le fichier DVF :
+        # permettent à l'intégration (07_data_collection_retrain.py) de
+        # calculer une vraie distance au transport le plus proche, au lieu
+        # de laisser la colonne vide (bug repéré lors d'un test réel : des
+        # colonnes NULL faisaient planter la corrélation/RFE de
+        # 02_feature_selection.py avec un ValueError "Input X contains NaN").
+        lon, lat = row.get("longitude"), row.get("latitude")
+        if pd.notna(lon) and pd.notna(lat):
+            payload["lon"] = float(lon)
+            payload["lat"] = float(lat)
+        payloads.append(payload)
     return payloads
 
 
