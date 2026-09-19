@@ -1,7 +1,7 @@
 [
   {
     "modele": "Régression linéaire",
-    "temps_entrainement_s": 0.001,
+    "temps_entrainement_s": 0.007,
     "rmse_train": 3852.1,
     "rmse_test": 3964.5,
     "mae_train": 1878.3,
@@ -11,22 +11,22 @@
   },
   {
     "modele": "Random Forest",
-    "temps_entrainement_s": 0.774,
-    "rmse_train": 2412.4,
-    "rmse_test": 3334.5,
+    "temps_entrainement_s": 2.742,
+    "rmse_train": 2412.3,
+    "rmse_test": 3334.3,
     "mae_train": 1230.2,
-    "mae_test": 1649.0,
+    "mae_test": 1649.1,
     "r2_train": 0.6444,
-    "r2_test": 0.3605
+    "r2_test": 0.3606
   },
   {
     "modele": "XGBoost",
-    "temps_entrainement_s": 0.443,
-    "rmse_train": 2638.1,
-    "rmse_test": 3387.1,
-    "mae_train": 1385.8,
-    "mae_test": 1657.6,
-    "r2_train": 0.5747,
-    "r2_test": 0.3402
+    "temps_entrainement_s": 0.255,
+    "rmse_train": 2652.1,
+    "rmse_test": 3401.6,
+    "mae_train": 1392.6,
+    "mae_test": 1671.6,
+    "r2_train": 0.5702,
+    "r2_test": 0.3345
   }
 ]
