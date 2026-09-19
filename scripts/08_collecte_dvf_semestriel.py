@@ -38,6 +38,7 @@ Usage prévu (à relancer après chaque publication DVF, ~avril et ~octobre) :
 import argparse
 import json
 import sqlite3
+import urllib.error
 from datetime import datetime
 from pathlib import Path
 
@@ -110,6 +111,25 @@ def telecharger_dvf(annee: int) -> pd.DataFrame:
     return pd.read_csv(url, usecols=lambda c: c in colonnes, dtype={"code_postal": str})
 
 
+def telecharger_dvf_avec_repli(annee_demandee: int):
+    """Essaie l'année demandée ; DVF ne publie les données d'une année
+    qu'après coup (rythme semestriel), donc le millésime en cours n'est
+    souvent pas encore disponible (constaté en pratique : le fichier 2026
+    n'existe pas encore alors que le 2025 oui). Sur un 404, on retente
+    automatiquement avec l'année précédente plutôt que d'échouer — cette
+    situation se reproduira à chaque exécution tant que l'année demandée
+    par défaut (l'année en cours) n'est pas close."""
+    try:
+        return telecharger_dvf(annee_demandee), annee_demandee
+    except urllib.error.HTTPError as e:
+        if e.code != 404:
+            raise
+        annee_repli = annee_demandee - 1
+        print(f"       [INFO] Fichier {annee_demandee} introuvable (404) — probablement "
+              f"pas encore publié par data.gouv.fr. Repli sur {annee_repli}.")
+        return telecharger_dvf(annee_repli), annee_repli
+
+
 def date_mutation_la_plus_recente_connue() -> str:
     """Dernière date déjà présente dans la base d'entraînement : tout ce qui
     est postérieur est considéré comme une donnée réellement nouvelle."""
@@ -170,9 +190,10 @@ def main():
                      help="Millésime DVF à récupérer (année de la publication)")
     args = ap.parse_args()
 
-    print(f"[1/3] Téléchargement du fichier DVF {args.annee} pour Toulouse (INSEE {CODE_INSEE_TOULOUSE})...")
-    print(f"       URL : {url_fichier_dvf(args.annee)}")
-    df = telecharger_dvf(args.annee)
+    print(f"[1/3] Téléchargement du fichier DVF pour Toulouse (INSEE {CODE_INSEE_TOULOUSE})...")
+    print(f"       URL demandée : {url_fichier_dvf(args.annee)}")
+    df, annee_effective = telecharger_dvf_avec_repli(args.annee)
+    print(f"       Millésime effectivement utilisé : {annee_effective}")
     print(f"       {len(df)} lignes brutes reçues (avant filtrage).")
 
     depuis_le = date_mutation_la_plus_recente_connue()
@@ -183,7 +204,7 @@ def main():
     print("[3/3] Insertion dans nouvelles_transactions (monitoring.db)...")
     conn = get_conn()
     for payload in nouvelles:
-        collecter_nouvelle_transaction(conn, payload, source=f"DVF_{args.annee}")
+        collecter_nouvelle_transaction(conn, payload, source=f"DVF_{annee_effective}")
     conn.commit()
     conn.close()
 
