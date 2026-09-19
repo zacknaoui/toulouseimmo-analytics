@@ -1,0 +1,18 @@
+# Environnements virtuels
+venv/
+.venv/
+env/
+
+# Cache Python / tests
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Fichiers système
+.DS_Store
+
+# Dossier de sauvegarde synthétique (volumineux, régénérable)
+data/_synthetic_backup/
+
+# Dossier dupliqué non utilisé par le projet (probable copie de travail)
+scripts copy/

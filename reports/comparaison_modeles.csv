@@ -1,0 +1,4 @@
+modele,temps_entrainement_s,rmse_train,rmse_test,mae_train,mae_test,r2_train,r2_test
+XGBoost,0.437,1909.8,3441.3,1113.3,1710.1,0.7214,0.3289
+Random Forest,0.533,2261.0,3552.9,1166.8,1769.7,0.6096,0.2846
+Régression linéaire,0.001,3483.2,4025.6,1728.8,1873.7,0.0734,0.0816

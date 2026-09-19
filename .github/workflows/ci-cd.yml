@@ -1,0 +1,101 @@
+name: CI/CD — ToulouseImmo Analytics (Bloc 5)
+
+# Déclenchement : toute mise à jour de la branche principale, ou d'une
+# pull request qui la cible (les tests tournent avant toute fusion).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ---------------------------------------------------------------------
+  # 1) TESTS — enregistrement du modèle dans un registre + tests +
+  #    évaluation des performances (cf. C5.3.2 : "automatiser l'enregistrement
+  #    du modèle dans un registre, les tests du modèle, l'évaluation des
+  #    performances, le déploiement du modèle")
+  # ---------------------------------------------------------------------
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Régénérer le jeu de données (si data/toulouse_immo.db absent du dépôt)
+        run: |
+          if [ ! -f data/toulouse_immo.db ]; then
+            python scripts/00_generate_calibrated_dataset.py
+          fi
+
+      - name: Reconstruire les features + sélection de variables
+        run: |
+          python scripts/01_feature_engineering.py
+          python scripts/02_feature_selection.py
+
+      - name: Entraîner + évaluer les performances des modèles
+        run: python scripts/03_train_models.py
+
+      - name: Optimiser les hyperparamètres
+        run: python scripts/04_optimize_hyperparameters.py
+
+      - name: Enregistrer le modèle dans le registre (models/)
+        run: python scripts/05_save_model.py
+
+      - name: Tests unitaires de l'API (pytest)
+        run: pytest tests/ -v
+
+      - name: Publier le modèle entraîné en artefact du run
+        uses: actions/upload-artifact@v4
+        with:
+          name: modele-toulouseimmo
+          path: models/
+
+  # ---------------------------------------------------------------------
+  # 2) BUILD — construction de l'image Docker de l'API
+  # ---------------------------------------------------------------------
+  build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Récupérer le modèle enregistré à l'étape précédente
+        uses: actions/download-artifact@v4
+        with:
+          name: modele-toulouseimmo
+          path: models/
+
+      - name: Construire l'image Docker
+        run: docker build -t toulouseimmo-api:${{ github.sha }} .
+
+      - name: Sauvegarder l'image en artefact (à défaut de registre Docker configuré)
+        run: docker save toulouseimmo-api:${{ github.sha }} -o image.tar
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: image-docker
+          path: image.tar
+
+  # ---------------------------------------------------------------------
+  # 3) DÉPLOIEMENT — uniquement sur la branche main, après succès des
+  #    étapes précédentes (déploiement du modèle en production)
+  # ---------------------------------------------------------------------
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Déployer la nouvelle version
+        run: |
+          echo "Déploiement de l'image toulouseimmo-api:${{ github.sha }}"
+          echo "(à adapter au registre / orchestrateur cible : ex. docker push"
+          echo " puis mise à jour du service — Render, Fly.io, ECS, k8s...)"

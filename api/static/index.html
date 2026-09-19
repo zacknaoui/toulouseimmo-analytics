@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ToulouseImmo Analytics — Estimation du prix au m²</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<style>
+  :root{
+    --cream:#FBF8F2; --cream2:#F2EEE3; --navy:#1F2E3D; --navy2:#2C3E50;
+    --terracotta:#C1592F; --gold:#D9A441; --green:#6B8F71; --blue:#4A7BA6;
+    --muted:#8A8477; --muted2:#8FA0AE; --line:#E3DFD2;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--cream); color:var(--navy);
+    font-family:'IBM Plex Sans', Arial, sans-serif;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center;
+    padding:48px 20px 80px;
+  }
+  .wrap{ width:100%; max-width:920px; }
+  header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:36px; flex-wrap:wrap; gap:16px; }
+  .brand{ display:flex; flex-direction:column; gap:6px; }
+  .eyebrow{ font-family:'JetBrains Mono', monospace; font-size:13px; font-weight:600; color:var(--terracotta); letter-spacing:1.5px; text-transform:uppercase; }
+  h1{ font-family:'Rubik', Arial, sans-serif; font-size:32px; font-weight:700; margin:0; color:var(--navy); }
+  .status{ display:flex; align-items:center; gap:8px; font-family:'JetBrains Mono', monospace; font-size:13px; color:var(--muted); background:#fff; border:1px solid var(--line); border-radius:999px; padding:8px 16px; }
+  .dot{ width:9px; height:9px; border-radius:50%; background:#C4C4C4; }
+  .dot.ok{ background:var(--green); }
+  .dot.bad{ background:var(--terracotta); }
+
+  .grid{ display:grid; grid-template-columns:1.1fr 0.9fr; gap:28px; align-items:start; }
+  @media (max-width:760px){ .grid{ grid-template-columns:1fr; } }
+
+  .card{ background:#fff; border:1px solid var(--line); border-radius:18px; padding:32px; }
+  .card h2{ font-family:'Rubik', Arial, sans-serif; font-size:20px; margin:0 0 22px; color:var(--navy); }
+
+  .field{ margin-bottom:18px; }
+  .field label{ display:block; font-size:13px; font-weight:600; color:var(--muted); margin-bottom:6px; }
+  .row2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  select, input{
+    width:100%; font-family:'IBM Plex Sans', Arial, sans-serif; font-size:15px;
+    padding:11px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--cream); color:var(--navy); outline:none;
+  }
+  select:focus, input:focus{ border-color:var(--blue); }
+  .hint{ font-size:12px; color:var(--muted); margin-top:6px; }
+
+  button{
+    width:100%; margin-top:8px; font-family:'Rubik', Arial, sans-serif; font-weight:700; font-size:16px;
+    padding:15px; border:none; border-radius:12px; background:var(--navy); color:var(--cream);
+    cursor:pointer; transition:opacity .15s;
+  }
+  button:hover{ opacity:.9; }
+  button:disabled{ opacity:.5; cursor:default; }
+
+  .result{ position:sticky; top:24px; }
+  .placeholder{ display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:10px; padding:40px 20px; color:var(--muted); }
+  .placeholder .big{ font-size:40px; }
+
+  .pred-main{ background:var(--navy); color:var(--cream); border-radius:14px; padding:26px; text-align:center; margin-bottom:18px; }
+  .pred-main .label{ font-size:13px; color:var(--muted2); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+  .pred-main .value{ font-family:'JetBrains Mono', monospace; font-size:40px; font-weight:600; color:var(--gold); }
+  .pred-main .sub{ font-size:14px; color:var(--muted2); margin-top:6px; }
+
+  .kv{ display:flex; justify-content:space-between; padding:10px 0; border-top:1px solid var(--line); font-size:14px; gap:12px; }
+  .kv span:first-child{ color:var(--muted); flex-shrink:0; }
+  .kv span:last-child{ font-family:'JetBrains Mono', monospace; font-weight:600; text-align:right; }
+
+  .interval{ background:var(--cream2); border-radius:10px; padding:14px 16px; margin-top:14px; font-size:13px; color:var(--muted); }
+  .interval b{ color:var(--navy); font-family:'JetBrains Mono', monospace; }
+
+  .badge-metro{ display:inline-block; background:var(--blue); color:#fff; font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; margin-left:6px; }
+
+  #map{ height:220px; border-radius:12px; margin-top:16px; display:none; border:1px solid var(--line); }
+  .map-legende{ display:flex; gap:16px; margin-top:8px; font-size:12px; color:var(--muted); }
+  .map-legende span{ display:inline-flex; align-items:center; gap:5px; }
+  .puce{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .puce.bien{ background:var(--terracotta); }
+  .puce.arret{ background:var(--blue); }
+
+  .err{ background:#FBEAE4; border:1px solid var(--terracotta); color:#9C3A1E; border-radius:10px; padding:14px 16px; font-size:14px; margin-top:14px; }
+
+  .modelinfo{ margin-top:18px; font-size:12px; color:var(--muted); font-family:'JetBrains Mono', monospace; text-align:center; }
+  footer{ margin-top:40px; text-align:center; font-size:13px; color:var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span class="eyebrow">Bloc 5 · RNCP 39586 · Démo modèle</span>
+      <h1>ToulouseImmo Analytics</h1>
+    </div>
+    <div class="status" id="status"><span class="dot" id="statusDot"></span><span id="statusText">Connexion à l'API…</span></div>
+  </header>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Décrire le bien</h2>
+      <form id="form">
+        <div class="field">
+          <label for="adresse">Adresse du bien</label>
+          <input type="text" id="adresse" placeholder="ex : 12 rue de Metz, Toulouse" required>
+          <p class="hint">Le quartier, le contexte socio-économique et la distance aux transports en commun sont déduits automatiquement de l'adresse.</p>
+        </div>
+        <div class="row2">
+          <div class="field">
+            <label for="type_bien">Type de bien</label>
+            <select id="type_bien" required>
+              <option value="Appartement">Appartement</option>
+              <option value="Maison">Maison</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="surface_m2">Surface (m²)</label>
+            <input type="number" id="surface_m2" min="10" max="400" step="1" value="55" required>
+          </div>
+        </div>
+        <div class="field">
+          <label for="nb_pieces">Nombre de pièces</label>
+          <input type="number" id="nb_pieces" min="1" max="10" step="1" value="3" required>
+        </div>
+
+        <button type="submit" id="submitBtn">Estimer le prix</button>
+      </form>
+    </div>
+
+    <div class="card result">
+      <h2>Estimation</h2>
+      <div id="map"></div>
+      <div class="map-legende" id="mapLegende" style="display:none;">
+        <span><span class="puce bien"></span>Bien estimé</span>
+        <span><span class="puce arret"></span>Arrêt le plus proche</span>
+      </div>
+      <div id="resultZone">
+        <div class="placeholder">
+          <div class="big">🏠</div>
+          <div>Renseigne une adresse et lance l'estimation pour voir la prédiction du modèle.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>API FastAPI locale (C5.3.2) — modèle sélectionné automatiquement par validation croisée, enrichi de la distance aux transports Tisséo (C5.2.4) — ToulouseImmo Analytics, Bloc 5 RNCP 39586</footer>
+</div>
+
+<script>
+async function checkHealth() {
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  try {
+    const res = await fetch('/health');
+    const data = await res.json();
+    if (data.modele_charge) {
+      dot.className = 'dot ok'; text.textContent = 'API et modèle en ligne';
+    } else {
+      dot.className = 'dot bad'; text.textContent = 'API en ligne, modèle non chargé';
+    }
+  } catch (e) {
+    dot.className = 'dot bad'; text.textContent = 'API injoignable';
+  }
+}
+checkHealth();
+
+const fmt = n => new Intl.NumberFormat('fr-FR').format(Math.round(n));
+
+let leafletMap = null;
+let markerBien = null, markerArret = null, ligne = null;
+
+function showMap(data) {
+  const mapDiv = document.getElementById('map');
+  const legende = document.getElementById('mapLegende');
+  mapDiv.style.display = 'block';
+  legende.style.display = 'flex';
+
+  if (!leafletMap) {
+    leafletMap = L.map('map', { zoomControl: true, attributionControl: true });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(leafletMap);
+  }
+
+  const iconBien = L.divIcon({ className: '', html: '<div style="width:14px;height:14px;border-radius:50%;background:#C1592F;border:2px solid #fff;box-shadow:0 0 0 1px #C1592F;"></div>', iconSize: [14, 14] });
+  const iconArret = L.divIcon({ className: '', html: '<div style="width:12px;height:12px;border-radius:50%;background:#4A7BA6;border:2px solid #fff;box-shadow:0 0 0 1px #4A7BA6;"></div>', iconSize: [12, 12] });
+
+  if (markerBien) leafletMap.removeLayer(markerBien);
+  if (markerArret) leafletMap.removeLayer(markerArret);
+  if (ligne) leafletMap.removeLayer(ligne);
+
+  const posBien = [data.lat, data.lon];
+  const posArret = [data.arret_lat, data.arret_lon];
+
+  markerBien = L.marker(posBien, { icon: iconBien }).addTo(leafletMap)
+    .bindPopup(`<b>Bien estimé</b><br>${data.adresse_normalisee}`);
+  markerArret = L.marker(posArret, { icon: iconArret }).addTo(leafletMap)
+    .bindPopup(`<b>${data.arret_nom}</b><br>${data.type_arret_proche}${data.est_metro_proche ? ' (métro)' : ''}`);
+  ligne = L.polyline([posBien, posArret], { color: '#8A8477', weight: 2, dashArray: '4,6' }).addTo(leafletMap);
+
+  leafletMap.fitBounds(L.latLngBounds([posBien, posArret]), { padding: [30, 30], maxZoom: 17 });
+  setTimeout(() => leafletMap.invalidateSize(), 100);
+}
+
+
+document.getElementById('form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  const zone = document.getElementById('resultZone');
+  btn.disabled = true; btn.textContent = 'Géocodage + calcul en cours…';
+
+  const payload = {
+    adresse: document.getElementById('adresse').value,
+    type_bien: document.getElementById('type_bien').value,
+    surface_m2: parseFloat(document.getElementById('surface_m2').value),
+    nb_pieces: parseInt(document.getElementById('nb_pieces').value),
+    mois_mutation: new Date().getMonth() + 1,  // envoyé au modèle, non demandé à l'utilisateur
+  };
+
+  try {
+    const res = await fetch('/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || `Erreur ${res.status}`);
+    }
+    const data = await res.json();
+    const badgeMetro = data.est_metro_proche ? '<span class="badge-metro">métro</span>' : '';
+    zone.innerHTML = `
+      <div class="pred-main">
+        <div class="label">Prix estimé au m²</div>
+        <div class="value">${fmt(data.prix_m2_predit)} €</div>
+        <div class="sub">soit environ ${fmt(data.prix_vente_estime)} € pour ${payload.surface_m2} m²</div>
+      </div>
+      <div class="kv"><span>Adresse détectée</span><span>${data.adresse_normalisee}</span></div>
+      <div class="kv"><span>Quartier</span><span>${data.quartier_detecte}</span></div>
+      <div class="kv"><span>Type de bien</span><span>${payload.type_bien}</span></div>
+      <div class="kv"><span>Surface</span><span>${payload.surface_m2} m²</span></div>
+      <div class="kv"><span>Arrêt le plus proche</span><span>${fmt(data.distance_transport_m)} m (${data.type_arret_proche})${badgeMetro}</span></div>
+      <div class="interval">Intervalle indicatif (± MAE du modèle) :<br><b>${fmt(data.intervalle_indicatif_m2[0])} € – ${fmt(data.intervalle_indicatif_m2[1])} €</b> / m²</div>
+      ${data.plafonne ? `<div class="interval">⚠️ Prédiction brute du modèle : <b>${fmt(data.prix_m2_brut)} €/m²</b> — hors plage plausible pour ce scénario, ramenée automatiquement à la borne (garde-fou de robustesse).</div>` : ''}
+      <div class="modelinfo">modèle ${data.modele_version}</div>
+    `;
+    showMap(data);
+  } catch (err) {
+    document.getElementById('map').style.display = 'none';
+    document.getElementById('mapLegende').style.display = 'none';
+    zone.innerHTML = `<div class="err">Impossible d'obtenir une estimation : ${err.message}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Estimer le prix';
+  }
+});
+</script>
+</body>
+</html>

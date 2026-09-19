@@ -1,0 +1,50 @@
+name: Collecte DVF semestrielle + réentraînement — ToulouseImmo (Bloc 5)
+
+# C5.3.4 — Automatisation du cycle de vie du système ML.
+#
+# Les Demandes de Valeurs Foncières (DVF) ne sont publiées par l'État que
+# deux fois par an (avril et octobre, cf. data.gouv.fr). Ce workflow se
+# déclenche automatiquement à ces deux moments pour récupérer le nouveau
+# millésime et déclencher, si les conditions sont réunies, le réentraînement
+# du modèle — sans intervention humaine, et sans dépendre d'un outil externe
+# au projet : uniquement GitHub Actions, comme pour le CI/CD (ci-cd.yml).
+#
+# workflow_dispatch permet aussi de le déclencher manuellement à la demande
+# (utile pour une démonstration en soutenance sans attendre avril/octobre).
+on:
+  schedule:
+    - cron: "0 9 15 4,10 *"   # 15 avril et 15 octobre, 9h UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write   # nécessaire pour re-committer les données/modèle mis à jour
+
+jobs:
+  collecte-et-reentrainement:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Installer les dépendances
+        run: pip install -r requirements.txt
+
+      - name: Récupérer le nouveau millésime DVF (Toulouse)
+        run: python scripts/08_collecte_dvf_semestriel.py --annee "$(date -u +%Y)"
+
+      - name: Vérifier les conditions de réentraînement et réentraîner si besoin
+        run: python scripts/07_data_collection_retrain.py --check-retrain
+
+      - name: Committer les données et le modèle mis à jour
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/ models/ reports/
+          git diff --cached --quiet && echo "Rien de nouveau à committer." || \
+            git commit -m "Collecte DVF + réentraînement automatique semestriel ($(date -u +%Y-%m-%d))"
+          git push

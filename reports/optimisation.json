@@ -1,0 +1,84 @@
+{
+  "comparaison_avant": [
+    {
+      "modele": "XGBoost",
+      "temps_entrainement_s": 0.437,
+      "rmse_train": 1909.8,
+      "rmse_test": 3441.3,
+      "mae_train": 1113.3,
+      "mae_test": 1710.1,
+      "r2_train": 0.7214,
+      "r2_test": 0.3289
+    },
+    {
+      "modele": "Random Forest",
+      "temps_entrainement_s": 0.533,
+      "rmse_train": 2261.0,
+      "rmse_test": 3552.9,
+      "mae_train": 1166.8,
+      "mae_test": 1769.7,
+      "r2_train": 0.6096,
+      "r2_test": 0.2846
+    },
+    {
+      "modele": "Régression linéaire",
+      "temps_entrainement_s": 0.001,
+      "rmse_train": 3483.2,
+      "rmse_test": 4025.6,
+      "mae_train": 1728.8,
+      "mae_test": 1873.7,
+      "r2_train": 0.0734,
+      "r2_test": 0.0816
+    }
+  ],
+  "comparaison_apres": [
+    {
+      "modele": "XGBoost (optimisé)",
+      "rmse_train": 1593.6,
+      "rmse_test": 3349.0,
+      "mae_train": 963.3,
+      "mae_test": 1703.5,
+      "r2_train": 0.806,
+      "r2_test": 0.3644
+    },
+    {
+      "modele": "Random Forest (optimisé)",
+      "rmse_train": 2975.6,
+      "rmse_test": 3771.3,
+      "mae_train": 1525.2,
+      "mae_test": 1796.6,
+      "r2_train": 0.3237,
+      "r2_test": 0.194
+    },
+    {
+      "modele": "Régression linéaire (référence)",
+      "rmse_train": 3483.2,
+      "rmse_test": 4025.6,
+      "mae_train": 1728.8,
+      "mae_test": 1873.7,
+      "r2_train": 0.0734,
+      "r2_test": 0.0816
+    }
+  ],
+  "meilleurs_hyperparametres_rf": {
+    "max_depth": 9,
+    "max_features": 0.6736419905302216,
+    "min_samples_leaf": 7,
+    "n_estimators": 506
+  },
+  "meilleurs_hyperparametres_xgb": {
+    "colsample_bytree": 0.9291794024068599,
+    "learning_rate": 0.05889383578028271,
+    "max_depth": 5.0,
+    "n_estimators": 495.0,
+    "reg_alpha": 1.024186116598562,
+    "reg_lambda": 1.1794873255938139,
+    "subsample": 0.8580691161637799
+  },
+  "modele_final_retenu": "XGBoost (optimisé)",
+  "residus_stats": {
+    "moyenne": 172.0,
+    "ecart_type": 3344.6,
+    "mediane_abs": 852.8
+  }
+}

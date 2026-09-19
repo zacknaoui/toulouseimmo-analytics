@@ -1,0 +1,26 @@
+{
+  "n_lignes_total": 14680,
+  "n_train": 11744,
+  "n_test": 2936,
+  "n_features": 17,
+  "feature_cols": [
+    "surface_m2",
+    "nb_pieces",
+    "is_maison",
+    "revenu_median_mensuel",
+    "taux_pauvrete_pct",
+    "population_2019",
+    "part_jeunes_pct",
+    "part_seniors_pct",
+    "mois_mutation",
+    "distance_transport_m",
+    "est_metro_proche",
+    "q_Bagatelle / Reynerie",
+    "q_Borderouge / Croix-Daurade",
+    "q_Capitole / Carmes",
+    "q_Côte Pavée / Jolimont",
+    "q_Rangueil / Saouzelong",
+    "q_Saint-Cyprien / Arènes"
+  ],
+  "target": "prix_m2"
+}
