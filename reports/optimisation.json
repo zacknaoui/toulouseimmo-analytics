@@ -2,7 +2,7 @@
   "comparaison_avant": [
     {
       "modele": "Random Forest",
-      "temps_entrainement_s": 2.742,
+      "temps_entrainement_s": 1.898,
       "rmse_train": 2412.3,
       "rmse_test": 3334.3,
       "mae_train": 1230.2,
@@ -12,7 +12,7 @@
     },
     {
       "modele": "XGBoost",
-      "temps_entrainement_s": 0.255,
+      "temps_entrainement_s": 0.152,
       "rmse_train": 2652.1,
       "rmse_test": 3401.6,
       "mae_train": 1392.6,
@@ -22,7 +22,7 @@
     },
     {
       "modele": "Régression linéaire",
-      "temps_entrainement_s": 0.007,
+      "temps_entrainement_s": 0.004,
       "rmse_train": 3852.1,
       "rmse_test": 3964.5,
       "mae_train": 1878.3,
